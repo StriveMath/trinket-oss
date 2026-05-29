@@ -1,0 +1,52 @@
+# Local override:
+#   1. Drops the bind mount + named-volume that hide the image's built assets
+#      (public/css, public/components).
+#   2. Re-mounts only ./config so config edits don't need a rebuild.
+#   3. Adds Piston (sandboxed code execution) + a Socket.IO shim so trinket's
+#      Python 3 / Java / R server-side languages work locally.
+services:
+  app:
+    volumes: !override
+      - ./config:/usr/local/node/trinket/config
+
+  # Battle-tested per-run sandbox (nsjail-isolated). Speaks plain REST.
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: piston
+    restart: unless-stopped
+    privileged: true  # required for nsjail user namespaces; isolated network keeps it contained
+    environment:
+      # Piston defaults its hard caps to 3000ms / 50MB which are too low for
+      # the kind of scripts students paste in. Raise to match our adapter.
+      PISTON_RUN_TIMEOUT: "10000"
+      PISTON_COMPILE_TIMEOUT: "10000"
+      PISTON_RUN_MEMORY_LIMIT: "268435456"
+      PISTON_COMPILE_MEMORY_LIMIT: "268435456"
+      PISTON_OUTPUT_MAX_SIZE: "1048576"
+    tmpfs:
+      - /piston/jobs
+    volumes:
+      - piston_packages:/piston/packages
+    networks:
+      - trinket
+
+  # Translates trinket's Socket.IO 'run' events <-> Piston REST.
+  sandbox:
+    build: ./sandbox
+    image: trinket/sandbox:latest
+    container_name: sandbox
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      PISTON_URL: http://piston:2000
+      RUN_TIMEOUT_MS: "10000"
+      COMPILE_TIMEOUT_MS: "10000"
+      MEMORY_LIMIT_BYTES: "268435456"  # 256 MB
+    depends_on:
+      - piston
+    networks:
+      - trinket
+
+volumes:
+  piston_packages:

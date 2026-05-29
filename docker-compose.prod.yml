@@ -1,0 +1,49 @@
+# Production-only compose layer. Apply alongside docker-compose.yml (and the
+# auto-loaded docker-compose.override.yml) like so:
+#
+#   docker compose -f docker-compose.yml \
+#                  -f docker-compose.override.yml \
+#                  -f docker-compose.prod.yml \
+#                  up -d --build
+#
+# What this changes vs. local:
+#   - Adds Caddy in front of everything (TLS + same-origin routing for sandbox)
+#   - Hides the trinket app port (only Caddy talks to it)
+#   - Hides the sandbox port (only Caddy talks to it)
+#   - All public traffic enters through 80/443 on Caddy
+
+services:
+  app:
+    ports: !override []
+    expose:
+      - "3000"
+
+  sandbox:
+    ports: !override []
+    expose:
+      - "8080"
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - trinket
+    depends_on:
+      - app
+      - sandbox
+
+volumes:
+  caddy_data:
+  caddy_config:

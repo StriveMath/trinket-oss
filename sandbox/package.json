@@ -1,0 +1,14 @@
+{
+  "name": "trinket-sandbox-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Socket.IO <-> Piston shim so trinket-oss can run Python 3 / Java / R server-side without writing a sandbox from scratch.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "socket.io": "^4.7.5",
+    "undici": "^6.19.8"
+  }
+}

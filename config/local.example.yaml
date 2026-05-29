@@ -20,6 +20,51 @@ app:
         domain: ''
         isSecure: false  # Set true in production with HTTPS
 
+  # Serve Skulpt (in-browser Python runtime) from this app's own
+  # /components/skulpt/* instead of the placeholder CDN bucket. Required
+  # for "Run" to work on Python (Skulpt) trinkets.
+  embed:
+    skulpt:
+      local: true
+      min: true
+
+  # Server-side language runtimes (Piston-backed sandbox at sandbox:8080 via
+  # docker compose). For local dev these URLs point at the published port; for
+  # production deploy they should be same-origin through Caddy (e.g.
+  # https://yourdomain.com/python3).
+  serverside:
+    python3:
+      api:
+        default: 'http://localhost:8080/python3'
+    java8:
+      api:
+        default: 'http://localhost:8080/java'
+    r3:
+      api:
+        default: 'http://localhost:8080/r'
+
+# =============================================================================
+# LANGUAGE FEATURE FLAGS
+# =============================================================================
+# Off by default in default.yaml. Turn on whatever you want available.
+# Client-side ones work out of the box. Server-side ones require the sandbox
+# + piston services from docker-compose.override.yml.
+
+features:
+  trinkets:
+    # Client-side (browser-only)
+    html: true
+    blocks: true
+    glowscript: true
+    glowscript-blocks: true
+    console: true
+    music: true
+    # Server-side (need Piston sandbox running)
+    python3: true
+    java: true
+    R: true
+    # pygame: false   # not supported by this sandbox (needs frame buffer)
+
 # =============================================================================
 # DATABASE
 # =============================================================================

@@ -24,6 +24,11 @@ config/production.json
 config/local.yaml
 config/local.yml
 config/local.json
+
+# Deploy secrets / per-environment files
+.env
+deploy/.env
+deploy/*.local.yaml
 config/migration.json
 config/migrationDb.json
 

@@ -1,0 +1,23 @@
+# Production Caddyfile for freetrinket.io.
+#
+# Routes everything to the trinket app EXCEPT the Socket.IO paths for the
+# server-side language sandboxes, which go to the sandbox container directly.
+# Same-origin routing means no CORS dance and the browser can use plain
+# https://${DOMAIN}/python3 as the server URL.
+
+{
+    email {$ACME_EMAIL}
+}
+
+{$DOMAIN} {
+    encode zstd gzip
+
+    # Server-side language sandboxes (Socket.IO over WebSocket / long-poll).
+    # Match BOTH /python3/socket.io/... and bare /python3 just in case the
+    # browser ever does an HTTP probe before upgrading.
+    @sandbox path /python3/socket.io* /java/socket.io* /r/socket.io*
+    reverse_proxy @sandbox sandbox:8080
+
+    # Everything else: the trinket Hapi app.
+    reverse_proxy app:3000
+}
