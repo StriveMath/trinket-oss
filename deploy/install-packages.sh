@@ -32,8 +32,17 @@ R_PACKAGES_HEAVY=(
 
 PY_PACKAGES=(
   numpy
-  pandas
   requests
+)
+
+# NOTE: pandas (and anything importing the bz2/lzma/sqlite3 stdlib modules)
+# does NOT work on Piston's prebuilt Python 3.9.4 — that interpreter was
+# compiled without the _bz2 C extension, so `import pandas` fails with
+# "No module named '_bz2'". numpy and requests are fine. Getting pandas to
+# work requires a custom Python build with full stdlib (the "custom image"
+# path), not just a pip install.
+PY_PACKAGES_UNSUPPORTED=(
+  # pandas
 )
 
 PISTON_CONTAINER="${PISTON_CONTAINER:-piston}"
