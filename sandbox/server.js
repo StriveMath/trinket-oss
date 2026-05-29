@@ -150,8 +150,10 @@ function attachLanguage(httpServer, mountPath, spec) {
         const stdout = run.stdout || '';
         const stderr = run.stderr || '';
 
-        if (stdout) socket.emit('stdout', { output: stdout });
-        if (stderr) socket.emit('stdout', { output: stderr });
+        // The browser handlers do `jqconsole.Write(out)` directly, so the
+        // 'stdout' event payload must be a plain string, not an object.
+        if (stdout) socket.emit('stdout', stdout);
+        if (stderr) socket.emit('stdout', stderr);
 
         if (run.signal) {
           // 'SIGKILL' is what Piston uses when wall-clock timeout fires.
