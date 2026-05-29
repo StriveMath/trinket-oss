@@ -37,7 +37,8 @@ TEMPLATE="$HERE/cloud-init.yaml"
 RENDERED="$(mktemp -t trinket-cloud-init.XXXXXX.yaml)"
 trap 'rm -f "$RENDERED"' EXIT
 
-SESSION_SECRET="$(LC_ALL=C tr -dc 'A-Za-z0-9' </dev/urandom | head -c 48)"
+# `tr | head` triggers SIGPIPE under `set -o pipefail`; use openssl instead.
+SESSION_SECRET="$(openssl rand -hex 24)"
 
 # Escape the URL for sed (slashes in https://...)
 REPO_URL_ESC="${REPO_URL//\//\\/}"
