@@ -87,6 +87,18 @@ write_files:
       #!/usr/bin/env bash
       set -euxo pipefail
 
+      # --- Swap (cheap insurance for 2GB droplets; npm + piston installs
+      #     can spike RAM during first boot). Skip if swap already exists. ---
+      if ! swapon --show | grep -q '/swapfile'; then
+        fallocate -l 2G /swapfile
+        chmod 600 /swapfile
+        mkswap /swapfile
+        swapon /swapfile
+        echo '/swapfile none swap sw 0 0' >> /etc/fstab
+        sysctl vm.swappiness=10
+        echo 'vm.swappiness=10' > /etc/sysctl.d/99-swappiness.conf
+      fi
+
       # --- Docker install (official repo) ---
       install -m 0755 -d /etc/apt/keyrings
       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
@@ -113,6 +125,9 @@ write_files:
 
       # --- Install per-environment config ---
       cp /opt/trinket/local.yaml.tpl repo/config/local.yaml
+      # The template is 0600 root; the app runs as a non-root user inside the
+      # container and needs read access, so widen to 0644.
+      chmod 644 repo/config/local.yaml
       cp /opt/trinket/.env repo/.env
 
       # --- Build & start (uses base + override + prod compose files) ---
