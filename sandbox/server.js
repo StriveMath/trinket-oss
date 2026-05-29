@@ -96,11 +96,54 @@ async function waitForPiston() {
   throw new Error(`piston never came up: ${lastErr && lastErr.message}`);
 }
 
-async function executeOnPiston(spec, code) {
+// Trinket's browser serializes the editor as JSON: a string containing
+// `[{ name, content, hidden?, comments? }, ...]`. Parse that back into the
+// files array Piston expects. Falls back to treating the input as raw source.
+function parseFiles(rawCode, spec) {
+  let files;
+  try {
+    const parsed = JSON.parse(rawCode);
+    if (Array.isArray(parsed)) {
+      files = parsed
+        .filter((f) => f && typeof f.content === 'string')
+        .map((f) => ({ name: f.name || spec.filename, content: f.content }));
+    }
+  } catch (_) {
+    // not JSON; treat as a single raw source file
+  }
+  if (!files || !files.length) {
+    files = [{ name: spec.filename, content: rawCode || '' }];
+  }
+  return files;
+}
+
+// Java's compiler requires the file name to match the public class name, but
+// trinket names the tab "Main.java" regardless. Rename each file to match its
+// public class, and move the file containing `main` to the front so Piston
+// uses it as the entry point.
+function normalizeJavaFiles(files) {
+  const renamed = files.map((f) => {
+    const m = f.content.match(/public\s+(?:final\s+|abstract\s+)?class\s+([A-Za-z_$][\w$]*)/);
+    return m ? { name: `${m[1]}.java`, content: f.content } : f;
+  });
+  const mainIdx = renamed.findIndex((f) => /static\s+(?:final\s+)?void\s+main\s*\(/.test(f.content));
+  if (mainIdx > 0) {
+    const [mainFile] = renamed.splice(mainIdx, 1);
+    renamed.unshift(mainFile);
+  }
+  return renamed;
+}
+
+async function executeOnPiston(spec, rawCode) {
+  let files = parseFiles(rawCode, spec);
+  if (spec.language === 'java') {
+    files = normalizeJavaFiles(files);
+  }
+
   const body = {
     language: spec.language,
     version: spec.version,
-    files: [{ name: spec.filename, content: code }],
+    files,
     compile_timeout: COMPILE_TIMEOUT_MS,
     run_timeout: RUN_TIMEOUT_MS,
     compile_memory_limit: MEMORY_LIMIT_BYTES,
