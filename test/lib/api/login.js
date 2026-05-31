@@ -18,6 +18,7 @@ module.exports = function() {
         flow.wasOk.should.be.true;
         flow.lastResponse.statusCode.should.eql(302);
         flow.lastResponse.redirect.should.be.true;
+        flow.lastResponse.headers.location.should.eql('/login');
         flow.lastRedirect.pathname.should.eql('/login');
       });
 
@@ -43,6 +44,7 @@ module.exports = function() {
           flow.wasOk.should.be.true;
           flow.lastResponse.statusCode.should.eql(302);
           flow.lastResponse.redirect.should.be.true;
+          flow.lastResponse.headers.location.should.eql('/home');
           flow.lastRedirect.pathname.should.eql('/home');
 
           done();
